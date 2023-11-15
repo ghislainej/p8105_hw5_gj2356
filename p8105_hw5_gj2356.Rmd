@@ -18,7 +18,7 @@ set.seed(1)
 ## PROBLEM 1
 
 The code chunk below reads in the Washington Post homicide data, and creates a new variable `city_state` that combines the city and state information.
-```{r}
+```{r, message = FALSE}
 urlfile = "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
 
 homicide = read_csv(url(urlfile)) |>
@@ -30,22 +30,62 @@ homicide = read_csv(url(urlfile)) |>
 
 There are 52179 observations and 13 variables in the homicide dataset detailing homicides in 50 states over a 10 year period (January 2007 to December 2017). Variables include date of homicide (`reported_date`), name of victim (`victim_last` and `victim_first`), victim demographics (`victim_race`, `victim_sex`, and `victim_age`), where the crime occurred (`city`, `state`, `city_state`, `lat`, `long`), as well as the status of the case - whether the case is open or closed and if there has been an arrest (`disposition`).
 
-```{r}
+```{r, message = FALSE}
 #number of homicides by city
-homicide |>
-  group_by(city_state) |> 
-  summarize(n = n()) |> 
-  knitr::kable()
+homicides_city = homicide |>
+                  group_by(city_state) |> 
+                  summarize(n = n()) |> 
+                  knitr::kable(caption = "Number of Homicides by City")
+homicides_city
 
 #number of unsolved homicides by city
-homicide |> 
-  mutate(
-    status = case_match(disposition,
-                        c("Closed without arrest","Open/No arrest") ~ "unsolved",
-                        .default = "solved")
-  ) |> 
-  filter(status == "unsolved") |> 
-  group_by(city_state, status) |> 
-  summarize(n = n()) |> 
-  knitr::kable()
+unsolved_homicides_city = homicide |> 
+                            mutate(
+                              status = case_match(disposition,
+                                c("Closed without arrest","Open/No arrest") ~ "unsolved",
+                                .default = "solved")) |> 
+                            filter(status == "unsolved") |> 
+                            group_by(city_state, status) |> 
+                            summarize(n = n()) |> 
+                            knitr::kable(caption = "Number of Unsolved Homicides by City")
+unsolved_homicides_city
 ```
+
+## PROBLEM 2
+
+The code chunk below creates a data frame containing all the names of the files. Each of the file names include the subject ID and arm (experimental or control).
+```{r}
+all_file_names = tibble(
+                    filename = list.files("./data")
+                    ) |> 
+                mutate(
+                  path = paste("./data/", sep = "", filename)
+                ) |> 
+                select(path)
+```
+
+The code chunk below create a function to read a file and then the function `load_hw5_files` is iterated over all the files in the folder to create one large data frame, `all_files`. This data frame contains the subject ID, what experimental arm they were in, and the observations for each of the weeks 1 - 8.
+```{r, message = FALSE}
+load_hw5_files = function(path, range) {
+  df = 
+    read_csv(path) |> 
+    janitor::clean_names()
+  df
+}
+
+all_files = all_file_names |> 
+              mutate(
+                week_observation = map(all_file_names$path, load_hw5_files),
+                arm_ID = gsub("./data/","",path),
+                arm_ID = gsub(".csv","",arm_ID)) |>
+              separate(arm_ID, into = c("arm", "ID")) |> 
+              mutate(
+                arm = case_match(arm,
+                      "con" ~ "control",
+                      "exp" ~ "experimental"),
+                ID = sub("^0","", ID)) |> 
+              unnest(cols = "week_observation") |> 
+              select(ID, arm, week_1:week_8) 
+all_files
+```
+
