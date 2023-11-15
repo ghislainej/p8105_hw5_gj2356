@@ -8,3 +8,20 @@ date: "2023-11-15"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, include=FALSE}
+library(tidyverse)
+library(rvest)
+library(readr)
+```
+
+```{r}
+set.seed(1)
+```
+
+```{r}
+urlfile = "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
+
+homicide = read_csv(url(urlfile)) |>
+          janitor::clean_names()
+```
+
