@@ -2,10 +2,16 @@
 title: "Homework 5"
 output: github_document
 date: "2023-11-15"
+author: "Ghislaine Jumonville"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
 ```
 
 ```{r, include=FALSE}
@@ -85,7 +91,30 @@ all_files = all_file_names |>
                       "exp" ~ "experimental"),
                 ID = sub("^0","", ID)) |> 
               unnest(cols = "week_observation") |> 
-              select(ID, arm, week_1:week_8) 
-all_files
+              select(ID, arm, week_1:week_8)
+knitr::kable(all_files)
 ```
 
+
+The code chunk below creates a plot showing the two groups: control and experimental, and how each subject observation value changes over time.
+```{r}
+all_files_plot = all_files |> 
+                    pivot_longer(
+                      cols = starts_with("week_"),
+                      names_to = "week",
+                      values_to = "observation"
+                      ) |> 
+                    mutate(
+                      week = as.numeric(gsub("week_","", week)),
+                      week = factor(week)
+                      ) |> 
+                    ggplot(aes(x = week, y = observation, group = ID, color = ID)) +
+                    geom_line() +
+                    geom_point() +
+                    facet_grid(~arm) +
+                    labs(title = "Observations Over Time for Control and Experimental Groups")
+                    
+all_files_plot
+```
+
+Looking at the plots, one can see that the control group have lower observation values compared to the experimental group. The experimental group seems to have an upward trend. The control group has fluctuations throughout the weeks, but end up around the same values that they started at.
